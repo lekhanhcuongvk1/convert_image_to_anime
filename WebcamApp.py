@@ -4,20 +4,24 @@ from tkinter import messagebox
 from PIL import Image, ImageTk
 import numpy as np
 import os
-from test import test
-
+from test import test, load_model  # Giả sử bạn đã có hàm load_model và test trong file test.py
 
 class WebcamApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Webcam Anime Converter")
 
+        # Thiết lập kích thước cửa sổ Tkinter để khớp với màn hình 10 inch (1280x800)
+        self.root.geometry("1280x800")
+
         # Trạng thái
         self.captured_image = None
         self.display_image = None
         self.is_capturing = True
 
+        # Load mô hình từ checkpoint một lần khi khởi tạo
         self.model_dir = "checkpoint/animeGan/Hayao/epoch=8-step=15012.ckpt"
+        self.model = load_model(self.model_dir)
 
         # Thiết lập giao diện
         self.setup_ui()
@@ -29,24 +33,28 @@ class WebcamApp:
             self.root.destroy()
             return
 
+        # Thiết lập độ phân giải camera tương ứng với màn hình 10 inch
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+
         # Bắt đầu cập nhật khung hình từ webcam
         self.update_frame()
 
     def setup_ui(self):
-        # Khung hiển thị ảnh
+        # Khung hiển thị ảnh, với kích thước lớn hơn để khớp với độ phân giải
         self.img_label = tk.Label(self.root)
-        self.img_label.pack(pady=20)
+        self.img_label.pack(expand=True, fill='both')
 
         # Tạo Frame chứa các nút
         button_frame = tk.Frame(self.root)
-        button_frame.pack(pady=20)
+        button_frame.pack()
 
         # Nút chụp ảnh và tự động chuyển thành anime
         self.capture_button = tk.Button(button_frame, text="Chụp & Chuyển thành Anime", command=self.capture_and_convert)
         self.capture_button.grid(row=0, column=0, padx=5, pady=5)
 
         # Nút hoàn tác để quay lại chụp ảnh tiếp
-        self.undo_button = tk.Button(button_frame, text="Hoàn tác", command=self.undo, state=tk.DISABLED)
+        self.undo_button = tk.Button(button_frame, text="Chụp ảnh mới", command=self.undo, state=tk.DISABLED)
         self.undo_button.grid(row=0, column=1, padx=5, pady=5)
 
     def update_frame(self):
@@ -55,6 +63,8 @@ class WebcamApp:
             if ret:
                 # Hiển thị ảnh bằng cách chuyển đổi từ BGR sang RGB (OpenCV -> PIL)
                 cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+                # Không cần resize vì đã đặt độ phân giải camera tương ứng với màn hình
                 img = Image.fromarray(cv2image)
                 imgtk = ImageTk.PhotoImage(image=img)
                 self.img_label.imgtk = imgtk
@@ -85,8 +95,8 @@ class WebcamApp:
 
     def convert_to_anime(self, image_input_path, original_image_name):
         try:
-            # Gọi hàm test để chuyển đổi ảnh thành anime (sử dụng ảnh BGR)
-            test(self.model_dir, image_input_path, False)
+            # Sử dụng mô hình đã load từ trước và truyền vào hàm test
+            test(self.model, image_input_path, False)
 
             # Xác định đường dẫn của ảnh anime đã được lưu tự động
             anime_image_path = os.path.join(r"D:\python-project\animeGanv2_pytorch\results", original_image_name)
@@ -110,10 +120,10 @@ class WebcamApp:
             messagebox.showerror("Lỗi", f"Lỗi khi chuyển đổi ảnh thành anime: {e}")
 
     def undo(self):
-        self.is_capturing = True
-        self.update_frame()
-        self.undo_button.config(state=tk.DISABLED)
-
+        if not self.is_capturing:
+            self.is_capturing = True
+            self.update_frame()
+            self.undo_button.config(state=tk.DISABLED)
 
 # Khởi tạo giao diện với Tkinter
 root = tk.Tk()

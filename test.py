@@ -55,12 +55,9 @@ def load_model(model_dir):
     return generated  # Trả về mô hình đã tải
 
 # Hàm test để thực hiện kiểm tra mô hình trên một ảnh đầu vào
-def test(model_dir, test_file_path, if_adjust_brightness):
-    # tf.reset_default_graph()
+def test(generated, test_file_path, if_adjust_brightness):
     result_dir = 'results'  # Thư mục để lưu kết quả ảnh sau khi xử lý
     check_folder(result_dir)  # Kiểm tra và tạo thư mục nếu chưa tồn tại
-
-    generated = load_model(model_dir)  # Tải mô hình từ checkpoint
 
     sample_image = np.asarray(load_test_data(test_file_path))  # Đọc ảnh đầu vào và chuyển thành mảng numpy
     sample_image = torch.Tensor(sample_image)  # Chuyển ảnh thành đối tượng Tensor của PyTorch
